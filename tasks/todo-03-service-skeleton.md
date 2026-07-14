@@ -8,28 +8,28 @@ Stand up the FastAPI service in top-level `tutorial-assistant/` (mirrors the `su
 
 ## Tasks
 
-- [ ] 1. `tutorial-assistant/pyproject.toml` + `uv.lock` — deps: fastapi, uvicorn, pydantic, pydantic-settings, anthropic, python-frontmatter; dev: pytest, pytest-asyncio, httpx
-- [ ] 2. `src/settings.py` — env vars per spec §5.3:
+- [x] 1. `tutorial-assistant/pyproject.toml` + `uv.lock` — deps: fastapi, uvicorn, pydantic, pydantic-settings, anthropic, python-frontmatter; dev: pytest, pytest-asyncio, httpx
+- [x] 2. `src/settings.py` — env vars per spec §5.3:
   - Required, fail startup with a clear error if missing: `ANTHROPIC_API_KEY`, `MODEL`
   - Optional with defaults: `KNOWLEDGE_DIR=/app/knowledge`, `ALLOWED_ORIGINS=http://localhost:8088`, `REQUEST_TIMEOUT_SECONDS=30`, `MAX_OUTPUT_TOKENS=700`
-- [ ] 3. `src/schemas.py` — `AskRequest`:
+- [x] 3. `src/schemas.py` — `AskRequest`:
   - `question` ≤ 1,000 chars, non-empty
   - `history` ≤ 6 entries; each entry ≤ 2,000 chars; roles only `user`/`assistant`, strictly alternating
   - `context.route` ∈ {`dashboard`, `explore`, `sqllab`, `list`, `other`}
   - `context.viz_type` optional, ≤ 50 chars
   - Error envelope model with codes `VALIDATION | MODEL_UNAVAILABLE | TIMEOUT`
-- [ ] 4. `src/knowledge.py` — load `KNOWLEDGE_DIR/*.md` **sorted by filename** (deterministic); validate: frontmatter present, `topic` present + unique, `routes` ⊆ valid set, body non-empty and ≤ 300 words; any violation → raise → startup abort
-- [ ] 5. `src/main.py` — app factory; lifespan loads knowledge once; `GET /health` → `{"status": "ok", "knowledge_docs": N}` (real count, non-2xx when pack failed); `POST /ask` returns 501 stub; 422 handler emits `{"error": {"code": "VALIDATION", ...}}`
-- [ ] 6. Seed `tutorial-assistant/knowledge/` with 2–3 placeholder files (replaced in Todo 05)
-- [ ] 7. Tests: `tests/test_schemas.py` (every §5.5 limit, valid/invalid routes, alternation), `tests/test_knowledge.py` (deterministic order; each frontmatter failure mode aborts), `tests/test_health.py`, `tests/test_settings.py` (missing key/model → clear startup error)
+- [x] 4. `src/knowledge.py` — load `KNOWLEDGE_DIR/*.md` **sorted by filename** (deterministic); validate: frontmatter present, `topic` present + unique, `routes` ⊆ valid set, body non-empty and ≤ 300 words; any violation → raise → startup abort
+- [x] 5. `src/main.py` — app factory; lifespan loads knowledge once; `GET /health` → `{"status": "ok", "knowledge_docs": N}` (real count, non-2xx when pack failed); `POST /ask` returns 501 stub; 422 handler emits `{"error": {"code": "VALIDATION", ...}}`
+- [x] 6. Seed `tutorial-assistant/knowledge/` with 2–3 placeholder files (replaced in Todo 05)
+- [x] 7. Tests: `tests/test_schemas.py` (every §5.5 limit, valid/invalid routes, alternation), `tests/test_knowledge.py` (deterministic order; each frontmatter failure mode aborts), `tests/test_health.py`, `tests/test_settings.py` (missing key/model → clear startup error)
 
 ## Acceptance criteria (spec §10 service tests 2–4)
 
-- [ ] Invalid route/history/size requests → 422 with `code: "VALIDATION"`
-- [ ] Knowledge files load in deterministic (sorted) order, stable across runs
-- [ ] Any invalid frontmatter, empty body, or >300-word file aborts startup with an actionable message
-- [ ] Missing `ANTHROPIC_API_KEY` or `MODEL` aborts startup
-- [ ] `/health` reports the actual loaded file count
+- [x] Invalid route/history/size requests → 422 with `code: "VALIDATION"`
+- [x] Knowledge files load in deterministic (sorted) order, stable across runs
+- [x] Any invalid frontmatter, empty body, or >300-word file aborts startup with an actionable message
+- [x] Missing `ANTHROPIC_API_KEY` or `MODEL` aborts startup
+- [x] `/health` reports the actual loaded file count
 
 ## Verification
 
@@ -45,3 +45,10 @@ curl -s -X POST localhost:8100/ask -H 'content-type: application/json' \
 ## Files (~12, all new under `tutorial-assistant/`)
 
 `pyproject.toml`, `uv.lock`, `src/{__init__,settings,schemas,knowledge,main}.py`, `knowledge/*.md` (placeholders), `tests/test_{schemas,knowledge,health,settings}.py`
+
+## Execution notes
+
+- 39 pytest tests pass (`uv run pytest -q`); live-boot verified: `/health` -> `{"status":"ok","knowledge_docs":2}`, invalid `/ask` -> 422 `VALIDATION` envelope, valid `/ask` -> 501 `MODEL_UNAVAILABLE` stub.
+- Run the server with the factory pattern: `uvicorn src.main:build_app --factory --port 8100` (module-level `app` was avoided so tests can inject `Settings`).
+- History validation enforces: starts with `user`, strictly alternates, ends with `assistant` (so the incoming question forms a valid next user turn for the model API).
+- Basic CORS middleware landed here (todo 04 refines only if needed); verified allowed vs denied origins in tests.

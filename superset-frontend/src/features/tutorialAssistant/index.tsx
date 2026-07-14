@@ -26,8 +26,7 @@ import { Composer } from './components/Composer';
 import { TutorialMessage } from './types';
 
 /**
- * Placeholder reply used until the widget is wired to the assistant
- * service. Replaced by streamed answers in a later milestone.
+ * Reply shown when no assistant service integration is present.
  */
 const PLACEHOLDER_REPLY = t(
   'The tutorial assistant service is not connected yet. This is a placeholder response.',
