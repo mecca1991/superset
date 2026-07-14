@@ -256,6 +256,30 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
 
+  tutorial-assistant:
+    build: ./tutorial-assistant
+    # Bound to loopback only: the v1 API has no authentication and is
+    # acceptable only for a local demo (spec section 9).
+    ports:
+      - "127.0.0.1:${TUTORIAL_ASSISTANT_PORT:-8100}:8100"
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override (ANTHROPIC_API_KEY here)
+        required: false
+    environment:
+      MODEL: ${MODEL:-claude-opus-4-8}
+      KNOWLEDGE_DIR: /app/knowledge
+      ALLOWED_ORIGINS: ${TUTORIAL_ASSISTANT_ALLOWED_ORIGINS:-http://localhost:8088,http://localhost:9000}
+      REQUEST_TIMEOUT_SECONDS: ${TUTORIAL_ASSISTANT_REQUEST_TIMEOUT_SECONDS:-30}
+      MAX_OUTPUT_TOKENS: ${TUTORIAL_ASSISTANT_MAX_OUTPUT_TOKENS:-700}
+    # Mount source and knowledge for local iteration; the compiled venv in
+    # the image stays isolated from the host.
+    volumes:
+      - ./tutorial-assistant/src:/app/src:ro
+      - ./tutorial-assistant/knowledge:/app/knowledge:ro
+    restart: unless-stopped
+
 volumes:
   superset_home:
     external: false
