@@ -18,10 +18,12 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Launcher } from './components/Launcher';
 import { Panel } from './components/Panel';
 import { MessageList } from './components/MessageList';
 import { Composer } from './components/Composer';
+import { LiveRegion } from './components/LiveRegion';
 import { getTutorialAssistantConfig } from './config';
 import { useRouteContext } from './useRouteContext';
 import { askAssistant, TutorialAssistantError } from './streamClient';
@@ -33,7 +35,18 @@ import {
 
 const MAX_HISTORY_ENTRIES = 6;
 const MAX_HISTORY_ENTRY_LENGTH = 2000;
-const UNAVAILABLE_MESSAGE = 'The tutorial assistant is currently unavailable.';
+const UNAVAILABLE_MESSAGE = t(
+  'The tutorial assistant is currently unavailable.',
+);
+const TIMEOUT_MESSAGE = t(
+  'The tutorial assistant took too long to respond. Please try again.',
+);
+
+function messageForError(code: TutorialAssistantErrorCode): string {
+  return code === TutorialAssistantErrorCode.Timeout
+    ? TIMEOUT_MESSAGE
+    : UNAVAILABLE_MESSAGE;
+}
 
 /**
  * Trim conversation history to the service limits (spec section 5.5).
@@ -73,6 +86,7 @@ function TutorialAssistantWidget() {
   const [messages, setMessages] = useState<TutorialMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [restoredQuestion, setRestoredQuestion] = useState<string>();
+  const [announcement, setAnnouncement] = useState('');
   const launcherRef = useRef<HTMLButtonElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const nextId = useRef(0);
@@ -129,6 +143,7 @@ function TutorialAssistantWidget() {
         });
         setStreaming(false);
         setRestoredQuestion(question);
+        setAnnouncement(UNAVAILABLE_MESSAGE);
         return;
       }
 
@@ -149,18 +164,22 @@ function TutorialAssistantWidget() {
             return;
           }
           updateMessage(assistantId, { status: 'done' });
+          // Announce the completed answer once, not per token (spec 4.2).
+          setAnnouncement(answer);
         })
         .catch(error => {
           const code =
             error instanceof TutorialAssistantError
               ? error.code
               : TutorialAssistantErrorCode.ModelUnavailable;
+          const message = messageForError(code);
           updateMessage(assistantId, {
             status: 'error',
-            content: UNAVAILABLE_MESSAGE,
+            content: message,
             errorCode: code,
           });
           setRestoredQuestion(question);
+          setAnnouncement(message);
         })
         .finally(() => {
           if (abortRef.current === controller) {
@@ -182,6 +201,7 @@ function TutorialAssistantWidget() {
           : message,
       ),
     );
+    setAnnouncement(t('Response stopped.'));
   }, [abortActive]);
 
   const openPanel = useCallback(() => setOpen(true), []);
@@ -202,13 +222,15 @@ function TutorialAssistantWidget() {
       <Launcher ref={launcherRef} expanded={open} onClick={openPanel} />
       {open && (
         <Panel onClose={closePanel}>
-          <MessageList messages={messages} />
+          <MessageList messages={messages} onExampleClick={handleSubmit} />
           <Composer
             onSubmit={handleSubmit}
             onStop={handleStop}
             streaming={streaming}
             restoredQuestion={restoredQuestion}
+            autoFocus={open}
           />
+          <LiveRegion message={announcement} />
         </Panel>
       )}
     </>

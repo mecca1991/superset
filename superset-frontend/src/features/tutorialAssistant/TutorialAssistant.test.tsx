@@ -178,11 +178,8 @@ test('shows a retryable error and preserves the question on failure', async () =
   renderWidget();
   openAndAsk('What is a metric?');
 
-  await waitFor(() =>
-    expect(
-      screen.getByText(/tutorial assistant is currently unavailable/i),
-    ).toBeInTheDocument(),
-  );
+  const alert = await screen.findByRole('alert');
+  expect(alert).toHaveTextContent(/currently unavailable/i);
   expect(screen.getByRole('textbox', { name: 'Question' })).toHaveValue(
     'What is a metric?',
   );
@@ -214,6 +211,70 @@ test('excludes a stopped exchange from the next request history', async () => {
   // The stopped exchange is not sent; history is empty and well-formed.
   expect(secondBody.history).toEqual([]);
   expect(secondBody.question).toBe('second question');
+});
+
+test('focuses the question input when the panel opens', () => {
+  renderWidget();
+  userEvent.click(screen.getByRole('button', { name: OPEN_LABEL }));
+  expect(screen.getByRole('textbox', { name: 'Question' })).toHaveFocus();
+});
+
+test('offers clickable example questions in the empty state and asks them', async () => {
+  const fetchSpy = jest
+    .spyOn(window, 'fetch')
+    .mockResolvedValue(sseResponse([deltaEvent('ok'), DONE_EVENT]));
+  renderWidget();
+  userEvent.click(screen.getByRole('button', { name: OPEN_LABEL }));
+
+  const example = screen.getByRole('button', {
+    name: 'How do I create a dashboard?',
+  });
+  userEvent.click(example);
+
+  await waitFor(() => expect(fetchSpy).toHaveBeenCalled());
+  const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+  expect(body.question).toBe('How do I create a dashboard?');
+});
+
+test('announces the completed answer once via a polite live region', async () => {
+  jest
+    .spyOn(window, 'fetch')
+    .mockResolvedValue(
+      sseResponse([deltaEvent('A dimension '), deltaEvent('groups data.'), DONE_EVENT]),
+    );
+  renderWidget();
+  openAndAsk('What is a dimension?');
+
+  await waitFor(() => {
+    const status = screen.getByRole('status');
+    expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(status).toHaveTextContent('A dimension groups data.');
+  });
+});
+
+test('shows a timeout-specific message on TIMEOUT', async () => {
+  jest.spyOn(window, 'fetch').mockResolvedValue(
+    sseResponse([
+      `data: ${JSON.stringify({ type: 'error', code: 'TIMEOUT', message: 'x' })}\n\n`,
+    ]),
+  );
+  renderWidget();
+  openAndAsk('slow question');
+
+  const alert = await screen.findByRole('alert');
+  expect(alert).toHaveTextContent(/took too long/i);
+});
+
+test('keeps Tab focus within the panel (focus trap)', () => {
+  renderWidget();
+  userEvent.click(screen.getByRole('button', { name: OPEN_LABEL }));
+  const close = screen.getByRole('button', { name: CLOSE_LABEL });
+  const input = screen.getByRole('textbox', { name: 'Question' });
+
+  // Shift+Tab from the first focusable (close) wraps to the last (input).
+  close.focus();
+  userEvent.tab({ shift: true });
+  expect(input).toHaveFocus();
 });
 
 test('a crash inside the error boundary does not break sibling content', () => {
