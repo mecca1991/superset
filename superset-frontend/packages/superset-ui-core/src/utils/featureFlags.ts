@@ -56,6 +56,7 @@ export enum FeatureFlag {
   FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
   GlobalTaskFramework = 'GLOBAL_TASK_FRAMEWORK',
+  InAppTutorial = 'IN_APP_TUTORIAL',
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   Matrixify = 'MATRIXIFY',
   ScheduledQueries = 'SCHEDULED_QUERIES',
