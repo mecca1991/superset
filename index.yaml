@@ -3,6 +3,7 @@ entries:
   superset:
 +    urls:
 +    - https://github.com/apache/superset/releases/download/superset-helm-chart-0.20.0/superset-0.20.0.tgz
+  - apiVersion: v2
     appVersion: 6.1.0
     created: "2026-07-12T18:32:51.955447157Z"
     dependencies:
