@@ -30,9 +30,10 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY src ./src
 COPY knowledge ./knowledge
 
-# Run as a non-root user.
-RUN useradd --system --uid 1000 assistant \
-    && chown -R assistant /app
+# Run as a non-root user. Application files stay owned by root and
+# world-readable, so the running process cannot modify its own code
+# (it only reads src/ and knowledge/, and logs to stdout).
+RUN useradd --system --uid 1000 assistant
 USER assistant
 
 EXPOSE 8100
