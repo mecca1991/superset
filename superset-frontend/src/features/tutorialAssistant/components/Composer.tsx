@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { Button, Input } from '@superset-ui/core/components';
+import type { TextAreaRef } from '@superset-ui/core/components/Input';
 
 interface ComposerProps {
   onSubmit: (question: string) => void;
@@ -27,6 +28,8 @@ interface ComposerProps {
   streaming: boolean;
   /** A question to restore into the input, e.g. after a failed request. */
   restoredQuestion?: string;
+  /** Focus the input when this becomes true (e.g. the panel just opened). */
+  autoFocus?: boolean;
 }
 
 const MAX_QUESTION_LENGTH = 1000;
@@ -34,6 +37,7 @@ const MAX_QUESTION_LENGTH = 1000;
 const StyledComposer = styled.form`
   ${({ theme }) => `
     display: flex;
+    align-items: flex-end;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 3}px;
     border-top: 1px solid ${theme.colorSplit};
@@ -45,8 +49,10 @@ export function Composer({
   onStop,
   streaming,
   restoredQuestion,
+  autoFocus,
 }: ComposerProps) {
   const [question, setQuestion] = useState('');
+  const inputRef = useRef<TextAreaRef>(null);
 
   // Restore a preserved question (e.g. the widget failed the last request).
   useEffect(() => {
@@ -54,6 +60,13 @@ export function Composer({
       setQuestion(restoredQuestion);
     }
   }, [restoredQuestion]);
+
+  // Move focus to the input when the panel opens.
+  useEffect(() => {
+    if (autoFocus) {
+      inputRef.current?.focus();
+    }
+  }, [autoFocus]);
 
   const submit = () => {
     const trimmed = question.trim();
@@ -64,6 +77,14 @@ export function Composer({
     setQuestion('');
   };
 
+  // Enter submits; Shift+Enter inserts a newline.
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      submit();
+    }
+  };
+
   return (
     <StyledComposer
       onSubmit={event => {
@@ -71,11 +92,13 @@ export function Composer({
         submit();
       }}
     >
-      <Input
-        autoFocus
+      <Input.TextArea
+        ref={inputRef}
         value={question}
         maxLength={MAX_QUESTION_LENGTH}
+        autoSize={{ minRows: 1, maxRows: 4 }}
         onChange={event => setQuestion(event.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder={t('Ask a question about Superset')}
         aria-label={t('Question')}
       />

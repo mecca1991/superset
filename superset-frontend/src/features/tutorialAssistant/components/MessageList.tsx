@@ -24,7 +24,14 @@ import { MarkdownMessage } from './MarkdownMessage';
 
 interface MessageListProps {
   messages: TutorialMessage[];
+  onExampleClick: (question: string) => void;
 }
+
+const EXAMPLE_QUESTIONS = [
+  'How do I create a dashboard?',
+  'How do I create a line chart?',
+  'What is a dimension?',
+];
 
 const StyledList = styled.div`
   ${({ theme }) => `
@@ -78,23 +85,47 @@ const StyledError = styled.div`
   `}
 `;
 
-const StyledEmptyState = styled.p`
+const StyledEmptyState = styled.div`
   ${({ theme }) => `
     margin: auto;
     padding: ${theme.sizeUnit * 4}px;
     text-align: center;
     color: ${theme.colorTextSecondary};
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.sizeUnit * 3}px;
+  `}
+`;
+
+const StyledExamples = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.sizeUnit * 2}px;
+  `}
+`;
+
+const StyledExampleButton = styled.button`
+  ${({ theme }) => `
+    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
+    border: 1px solid ${theme.colorSplit};
+    border-radius: ${theme.borderRadius}px;
+    background-color: ${theme.colorBgContainer};
+    color: ${theme.colorText};
+    cursor: pointer;
+    text-align: left;
+
+    &:hover,
+    &:focus-visible {
+      border-color: ${theme.colorPrimary};
+      color: ${theme.colorPrimary};
+    }
   `}
 `;
 
 function AssistantBody({ message }: { message: TutorialMessage }) {
   if (message.status === 'error') {
-    return (
-      <StyledError role="alert">
-        {message.content ||
-          t('The tutorial assistant is currently unavailable.')}
-      </StyledError>
-    );
+    return <StyledError role="alert">{message.content}</StyledError>;
   }
   return (
     <>
@@ -112,14 +143,23 @@ function AssistantBody({ message }: { message: TutorialMessage }) {
   );
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({ messages, onExampleClick }: MessageListProps) {
   return (
-    <StyledList role="log" aria-label={t('Conversation')}>
+    <StyledList aria-label={t('Conversation')}>
       {messages.length === 0 ? (
         <StyledEmptyState>
-          {t(
-            'Ask a question about Superset, for example "How do I create a dashboard?"',
-          )}
+          <span>{t('Ask a question about Superset.')}</span>
+          <StyledExamples>
+            {EXAMPLE_QUESTIONS.map(example => (
+              <StyledExampleButton
+                key={example}
+                type="button"
+                onClick={() => onExampleClick(example)}
+              >
+                {example}
+              </StyledExampleButton>
+            ))}
+          </StyledExamples>
         </StyledEmptyState>
       ) : (
         messages.map(message => (
