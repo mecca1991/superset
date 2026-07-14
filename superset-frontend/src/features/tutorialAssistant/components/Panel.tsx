@@ -27,8 +27,15 @@ interface PanelProps {
   children: ReactNode;
 }
 
-const FOCUSABLE_SELECTOR =
-  'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'area[href]',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'button:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(', ');
 
 const StyledPanel = styled.section`
   ${({ theme }) => `
@@ -102,7 +109,7 @@ export function Panel({ onClose, children }: PanelProps) {
     if (event.key === 'Tab' && panelRef.current) {
       const focusable = Array.from(
         panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
-      ).filter(el => !el.hasAttribute('disabled'));
+      );
       if (focusable.length === 0) {
         return;
       }
