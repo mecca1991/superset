@@ -270,7 +270,7 @@ services:
     environment:
       MODEL: ${MODEL:-claude-opus-4-8}
       KNOWLEDGE_DIR: /app/knowledge
-      ALLOWED_ORIGINS: ${TUTORIAL_ASSISTANT_ALLOWED_ORIGINS:-http://localhost:8088,http://localhost:9000}
+      ALLOWED_ORIGINS: ${TUTORIAL_ASSISTANT_ALLOWED_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088,http://localhost:9000,http://127.0.0.1:9000}
       REQUEST_TIMEOUT_SECONDS: ${TUTORIAL_ASSISTANT_REQUEST_TIMEOUT_SECONDS:-30}
       MAX_OUTPUT_TOKENS: ${TUTORIAL_ASSISTANT_MAX_OUTPUT_TOKENS:-700}
     # Mount source and knowledge for local iteration; the compiled venv in

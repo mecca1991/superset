@@ -52,3 +52,13 @@ Browser demo question at `http://localhost:8088`.
 - The service reads secrets only from `docker/.env-local` (gitignored); `docker/.env-local.example` documents `ANTHROPIC_API_KEY`. `MODEL`, `ALLOWED_ORIGINS`, timeout, and max-tokens have compose-level defaults, so `docker/.env` needs no changes (and stays uncommitted with the user's local secrets).
 - Image uses `uv sync --frozen` into `/usr/local`; runs as non-root `assistant`; `HEALTHCHECK` hits `/health`.
 - Full-stack e2e (widget streaming a real answer in the browser) needs a real `ANTHROPIC_API_KEY` in `docker/.env-local`; the transport, health, and binding are verified here.
+
+## Fix: IPv4/IPv6 loopback mismatch (found during live demo)
+
+The widget showed "currently unavailable" with no request reaching the service. Root cause: the assistant publishes `127.0.0.1:8100` (IPv4-only loopback), but browsers resolve `localhost` to `::1` (IPv6) first, where nothing listens → connection refused before any request/preflight. Superset's own ports bind both stacks (`0.0.0.0` + `[::]`), so the page loaded fine while the widget's fetch to `localhost:8100` failed.
+
+Fix (keeps loopback-only binding per §9):
+- `superset_config.py`: default `api_url` → `http://127.0.0.1:8100` (forces IPv4 to the IPv4-published port).
+- `docker-compose.yml`: `ALLOWED_ORIGINS` default now includes both `localhost` and `127.0.0.1` for 8088/9000, so the page origin is accepted either way.
+
+Verified: real POST /ask streams a grounded answer (`outcome=done`, `cache_creation_input_tokens=6599` — prefix cached above the 4096 minimum); browser-style preflight `localhost:8088 → 127.0.0.1:8100` returns the allow-origin header.

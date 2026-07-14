@@ -122,9 +122,12 @@ def tutorial_assistant_bootstrap(payload: dict[str, Any]) -> dict[str, Any]:
     """
     return {
         "tutorial_assistant": {
+            # 127.0.0.1 (not localhost) so the browser uses IPv4 to reach the
+            # IPv4-only loopback-published assistant port; localhost may
+            # resolve to ::1 where the port is not bound.
             "api_url": os.environ.get(
                 "TUTORIAL_ASSISTANT_PUBLIC_URL",
-                "http://localhost:8100",
+                "http://127.0.0.1:8100",
             ),
         },
     }
