@@ -194,6 +194,28 @@ test('shows a retryable error and preserves the question on failure', async () =
 // in spec/helpers/shim.tsx (a known ESM-import workaround), so no parsing or
 // sanitization runs under jest. It is verified at runtime in the browser.
 
+test('excludes a stopped exchange from the next request history', async () => {
+  const fetchSpy = jest.spyOn(window, 'fetch');
+  // First answer stays open so it can be stopped mid-stream.
+  fetchSpy.mockResolvedValueOnce(openSseResponse());
+  renderWidget();
+  openAndAsk('first question');
+  const stop = await screen.findByRole('button', { name: 'Stop' });
+  userEvent.click(stop);
+
+  // Second question completes normally.
+  fetchSpy.mockResolvedValueOnce(sseResponse([deltaEvent('answer'), DONE_EVENT]));
+  openAndAsk('second question');
+
+  await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+  const secondBody = JSON.parse(
+    (fetchSpy.mock.calls[1][1] as RequestInit).body as string,
+  );
+  // The stopped exchange is not sent; history is empty and well-formed.
+  expect(secondBody.history).toEqual([]);
+  expect(secondBody.question).toBe('second question');
+});
+
 test('a crash inside the error boundary does not break sibling content', () => {
   const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
   const Boom = () => {

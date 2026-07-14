@@ -35,15 +35,37 @@ const MAX_HISTORY_ENTRIES = 6;
 const MAX_HISTORY_ENTRY_LENGTH = 2000;
 const UNAVAILABLE_MESSAGE = 'The tutorial assistant is currently unavailable.';
 
-/** Trim conversation history to the service limits (spec section 5.5). */
+/**
+ * Trim conversation history to the service limits (spec section 5.5).
+ *
+ * Messages accumulate as (user, assistant) pairs. Only exchanges whose answer
+ * finished are included, dropped as whole pairs — so a stopped, errored, or
+ * still-streaming answer never enters history, and the result stays strictly
+ * alternating and ends with an assistant turn as the service requires.
+ */
 function buildHistory(messages: TutorialMessage[]): TutorialHistoryEntry[] {
-  return messages
-    .filter(message => message.status !== 'error')
-    .slice(-MAX_HISTORY_ENTRIES)
-    .map(({ role, content }) => ({
-      role,
-      content: content.slice(0, MAX_HISTORY_ENTRY_LENGTH),
-    }));
+  const entries: TutorialHistoryEntry[] = [];
+  for (let i = 0; i + 1 < messages.length; i += 2) {
+    const user = messages[i];
+    const assistant = messages[i + 1];
+    if (
+      user.role === 'user' &&
+      assistant.role === 'assistant' &&
+      assistant.status === 'done'
+    ) {
+      entries.push(
+        {
+          role: 'user',
+          content: user.content.slice(0, MAX_HISTORY_ENTRY_LENGTH),
+        },
+        {
+          role: 'assistant',
+          content: assistant.content.slice(0, MAX_HISTORY_ENTRY_LENGTH),
+        },
+      );
+    }
+  }
+  return entries.slice(-MAX_HISTORY_ENTRIES);
 }
 
 function TutorialAssistantWidget() {

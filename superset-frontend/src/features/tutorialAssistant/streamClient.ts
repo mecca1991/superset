@@ -108,8 +108,14 @@ export async function askAssistant({
   let buffer = '';
 
   const handleEvent = (raw: string) => {
-    const line = raw.split('\n').find(part => part.startsWith('data: '));
-    if (!line) {
+    // SSE allows several data: lines per event; the spec joins them with a
+    // newline. The service emits a single line, but this stays spec-correct.
+    const data = raw
+      .split('\n')
+      .filter(part => part.startsWith('data: '))
+      .map(part => part.slice('data: '.length))
+      .join('\n');
+    if (!data) {
       return;
     }
     // Boundary buffering already guarantees whole events here; this guard
@@ -117,7 +123,7 @@ export async function askAssistant({
     // rather than tearing down the stream.
     let payload;
     try {
-      payload = JSON.parse(line.slice('data: '.length));
+      payload = JSON.parse(data);
     } catch {
       return;
     }
@@ -150,7 +156,10 @@ export async function askAssistant({
       // Guard against a malformed stream that never emits an event boundary,
       // which would otherwise grow the buffer without bound.
       if (buffer.length > MAX_BUFFER_BYTES) {
-        throw new TutorialAssistantError(DEFAULT_ERROR, 'Stream buffer overflow');
+        throw new TutorialAssistantError(
+          DEFAULT_ERROR,
+          'Stream buffer overflow',
+        );
       }
     }
   } catch (error) {
