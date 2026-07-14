@@ -14,7 +14,7 @@ Spec: `../Superset_In-App_Tutorial_Assistant_Technical_Specification.md` · Plan
 | 01 | [Branch, env repair, plan docs, flag + bootstrap plumbing](todo-01-branch-flag-bootstrap.md) | M1 | S | — | ✅ done |
 | 02 | [Widget shell: launcher + panel, hardcoded reply](todo-02-widget-shell.md) | M1 | M | 01 | ✅ done |
 | 03 | [Assistant service skeleton: settings, schemas, knowledge loader, /health](todo-03-service-skeleton.md) | M2 | M | — | ✅ done |
-| 04 | [Streaming /ask: Anthropic, SSE, caching, cancellation](todo-04-streaming-ask.md) | M2 | L | 03 | ⬜ not started |
+| 04 | [Streaming /ask: Anthropic, SSE, caching, cancellation](todo-04-streaming-ask.md) | M2 | L | 03 | ✅ done |
 | 05 | [Knowledge pack: author + verify 15 files](todo-05-knowledge-pack.md) | M2 | M | 01, 03 | ⬜ not started |
 | 06 | [Wire widget to service: stream client, route context, abort, markdown](todo-06-wire-widget.md) | M2 | M | 02, 04 | ⬜ not started |
 | 07 | [Compose integration: assistant sidecar, loopback binding](todo-07-compose-integration.md) | M3 | S | 03 | ⬜ not started |

@@ -21,6 +21,8 @@ from fastapi.testclient import TestClient
 from src.main import create_app
 from src.settings import Settings
 
+from .fakes import FakeAnthropic
+
 VALID_DOC = """---
 topic: {topic}
 routes:
@@ -62,7 +64,12 @@ def settings(knowledge_dir: Path) -> Settings:
 
 
 @pytest.fixture
-def client(settings: Settings) -> TestClient:
-    app = create_app(settings)
+def fake_anthropic() -> FakeAnthropic:
+    return FakeAnthropic()
+
+
+@pytest.fixture
+def client(settings: Settings, fake_anthropic: FakeAnthropic) -> TestClient:
+    app = create_app(settings, anthropic_client=fake_anthropic)
     with TestClient(app) as test_client:
         yield test_client

@@ -83,19 +83,6 @@ def test_oversized_question_returns_validation_envelope(
     assert response.json()["error"]["code"] == "VALIDATION"
 
 
-def test_valid_request_hits_unimplemented_stub(client: TestClient) -> None:
-    response = client.post(
-        "/ask",
-        json={"question": "What is a dimension?", "context": {"route": "explore"}},
-    )
-    assert response.status_code == 501
-    body = response.json()
-    assert body["error"]["code"] == "MODEL_UNAVAILABLE"
-    assert (
-        body["error"]["message"] == "The tutorial assistant is currently unavailable."
-    )
-
-
 def test_cors_allows_only_configured_origin(client: TestClient) -> None:
     allowed = client.options(
         "/ask",

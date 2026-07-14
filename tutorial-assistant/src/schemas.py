@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Request and error models for the assistant API (spec sections 5.5 and 6)."""
+"""Request and error models for the assistant API."""
 
 from enum import Enum
 from typing import Literal
