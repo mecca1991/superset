@@ -16,12 +16,21 @@
 # under the License.
 """Prompt construction (spec section 5.4).
 
-The system prompt (instructions + knowledge pack) is assembled once at
-startup and is byte-identical across requests, with a cache_control
-breakpoint on its final block so the repeated prefix is served from the
-prompt cache. Route context and viz_type are injected into the user turn
-only, never the system prompt, so per-route variation cannot invalidate
-the cached prefix.
+The system prompt is assembled once at startup and remains identical across
+requests. An explicit cache breakpoint is placed on the final knowledge
+block, making the complete system prefix eligible for Anthropic prompt
+caching.
+
+Caching is not guaranteed on every request: the first request writes the
+cache, later requests read it only while the cache remains active (the
+default ephemeral lifetime is five minutes), and the prompt must meet the
+model's minimum cacheable token threshold — Anthropic silently skips
+caching below it. Cache creation and cache hits must be verified through
+the response usage fields (cache_creation_input_tokens and
+cache_read_input_tokens), which this service logs per request.
+
+Route context and viz_type are added after the cached prefix in the user
+turn, so per-route variation never touches the system prefix.
 """
 
 import hashlib
@@ -63,8 +72,8 @@ The knowledge pack follows. Each topic is delimited by a heading.
 def build_system_blocks(docs: list[KnowledgeDoc]) -> list[dict[str, Any]]:
     """Assemble the system prompt blocks in deterministic order.
 
-    The final block carries the single cache_control breakpoint; everything
-    before it forms the stable cached prefix.
+    The final block carries the single cache_control breakpoint, marking
+    the entire block list as the prefix eligible for caching.
     """
     blocks: list[dict[str, Any]] = [{"type": "text", "text": SYSTEM_INSTRUCTIONS}]
     blocks.extend(
@@ -90,7 +99,7 @@ def build_user_turn(
     """Build the user message with the page context prefix.
 
     Context lives in the user turn only (spec section 5.4) so that route
-    variation never touches the cached system prefix.
+    variation never touches the system prefix.
     """
     context = f"[Page context: route={route}"
     if viz_type:
