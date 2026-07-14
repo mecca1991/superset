@@ -43,6 +43,10 @@ interface AskParams {
 
 const DEFAULT_ERROR = TutorialAssistantErrorCode.ModelUnavailable;
 
+// A complete SSE event is a small JSON payload; anything this large without
+// an event boundary indicates a malformed stream.
+const MAX_BUFFER_BYTES = 1_000_000;
+
 function parseErrorCode(value: unknown): TutorialAssistantErrorCode {
   switch (value) {
     case TutorialAssistantErrorCode.Validation:
@@ -142,6 +146,11 @@ export async function askAssistant({
         buffer = buffer.slice(boundary + 2);
         handleEvent(event);
         boundary = buffer.indexOf('\n\n');
+      }
+      // Guard against a malformed stream that never emits an event boundary,
+      // which would otherwise grow the buffer without bound.
+      if (buffer.length > MAX_BUFFER_BYTES) {
+        throw new TutorialAssistantError(DEFAULT_ERROR, 'Stream buffer overflow');
       }
     }
   } catch (error) {
