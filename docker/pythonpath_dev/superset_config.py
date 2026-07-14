@@ -23,7 +23,7 @@
 import logging
 import os
 import sys
-from typing import Any
+from typing import Any, cast
 
 from celery.schedules import crontab
 from flask_caching.backends.filesystemcache import FileSystemCache
@@ -134,6 +134,38 @@ def tutorial_assistant_bootstrap(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 COMMON_BOOTSTRAP_OVERRIDES_FUNC = tutorial_assistant_bootstrap
+
+# The tutorial assistant runs on a separate origin, so the browser's fetch
+# from the Superset page is subject to Superset's Content-Security-Policy.
+# Add the assistant origins to connect-src, otherwise the widget's request is
+# blocked before it is ever sent. Both loopback forms are allowed so the demo
+# works whether the page is served from localhost or 127.0.0.1.
+#
+# This must run at config-load time: Talisman reads TALISMAN_CONFIG in
+# configure_middlewares(), which runs before FLASK_APP_MUTATOR, so a later
+# hook would be too late. The whole block is guarded so that an import-order
+# change can never take down the app — at worst the assistant is unreachable.
+_TUTORIAL_ASSISTANT_CONNECT_SRC = [
+    "http://127.0.0.1:8100",
+    "http://localhost:8100",
+]
+try:
+    from superset.config import (  # noqa: E402
+        TALISMAN_CONFIG,
+        TALISMAN_DEV_CONFIG,
+    )
+
+    for _talisman_config in (TALISMAN_CONFIG, TALISMAN_DEV_CONFIG):
+        _csp = _talisman_config["content_security_policy"]
+        cast("list[str]", _csp["connect-src"]).extend(  # type: ignore[index]
+            _TUTORIAL_ASSISTANT_CONNECT_SRC
+        )
+except Exception:  # noqa: BLE001
+    logger.warning(
+        "Could not extend Content-Security-Policy connect-src for the tutorial "
+        "assistant; the in-app assistant may be blocked by the browser."
+    )
+
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
 # The base URL for the email report hyperlinks.

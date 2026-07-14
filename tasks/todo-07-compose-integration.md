@@ -62,3 +62,25 @@ Fix (keeps loopback-only binding per §9):
 - `docker-compose.yml`: `ALLOWED_ORIGINS` default now includes both `localhost` and `127.0.0.1` for 8088/9000, so the page origin is accepted either way.
 
 Verified: real POST /ask streams a grounded answer (`outcome=done`, `cache_creation_input_tokens=6599` — prefix cached above the 4096 minimum); browser-style preflight `localhost:8088 → 127.0.0.1:8100` returns the allow-origin header.
+
+## Fix 2: Content-Security-Policy blocked the widget's fetch (deep analysis)
+
+After the IPv4 fix the widget still showed unavailable. Deep analysis (browser
+`javascript_tool` + server logs) showed the fetch failed with "Failed to fetch"
+and **no request reached the server — not even an OPTIONS preflight**. That
+rules out CORS (which sends a preflight) and points to a pre-flight block:
+Superset's Talisman **Content-Security-Policy**. Its `connect-src` was
+`'self'` + map hosts only, so the browser refused the widget's cross-origin
+fetch to the assistant before sending it.
+
+Fix: `docker/pythonpath_dev/superset_config.py` extends `connect-src` in both
+`TALISMAN_CONFIG` and `TALISMAN_DEV_CONFIG` to include
+`http://127.0.0.1:8100` and `http://localhost:8100`.
+
+Verified in a real browser: `fetch` returns 200 and streams; the widget
+renders the grounded, markdown-formatted line-chart procedure from the pack.
+
+Diagnostic ladder (all three were real and had to be fixed in order):
+1. api_url missing → widget short-circuits (was fine; bootstrap correct).
+2. IPv4/IPv6 loopback mismatch → browser couldn't connect to :8100.
+3. CSP `connect-src` → browser blocked the fetch pre-flight. ← final blocker.
