@@ -29,10 +29,17 @@ export enum TutorialAssistantErrorCode {
 
 export type TutorialMessageRole = 'user' | 'assistant';
 
+/** Lifecycle of an assistant answer as it streams in. */
+export type TutorialMessageStatus = 'streaming' | 'done' | 'stopped' | 'error';
+
 export interface TutorialMessage {
   id: string;
   role: TutorialMessageRole;
   content: string;
+  /** Present on assistant messages; absent on user messages. */
+  status?: TutorialMessageStatus;
+  /** Set when status is 'error'. */
+  errorCode?: TutorialAssistantErrorCode;
 }
 
 /** Page context sent with each question, derived from the current route. */
@@ -42,3 +49,13 @@ export type TutorialRouteContext =
   | 'sqllab'
   | 'list'
   | 'other';
+
+export interface TutorialContext {
+  route: TutorialRouteContext;
+  viz_type?: string;
+}
+
+export interface TutorialHistoryEntry {
+  role: TutorialMessageRole;
+  content: string;
+}
