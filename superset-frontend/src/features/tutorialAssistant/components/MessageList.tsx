@@ -18,7 +18,9 @@
  */
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
+import { Loading } from '@superset-ui/core/components';
 import { TutorialMessage } from '../types';
+import { MarkdownMessage } from './MarkdownMessage';
 
 interface MessageListProps {
   messages: TutorialMessage[];
@@ -40,12 +42,12 @@ const StyledMessage = styled.div<{ messageRole: TutorialMessage['role'] }>`
     max-width: 85%;
     padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
     border-radius: ${theme.borderRadius}px;
-    white-space: pre-wrap;
     overflow-wrap: break-word;
     ${
       messageRole === 'user'
         ? `
           align-self: flex-end;
+          white-space: pre-wrap;
           background-color: ${theme.colorPrimary};
           color: ${theme.colorWhite};
         `
@@ -58,6 +60,24 @@ const StyledMessage = styled.div<{ messageRole: TutorialMessage['role'] }>`
   `}
 `;
 
+const StyledStatus = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+    margin-top: ${theme.sizeUnit}px;
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorTextTertiary};
+  `}
+`;
+
+const StyledError = styled.div`
+  ${({ theme }) => `
+    color: ${theme.colorError};
+    font-size: ${theme.fontSizeSM}px;
+  `}
+`;
+
 const StyledEmptyState = styled.p`
   ${({ theme }) => `
     margin: auto;
@@ -66,6 +86,31 @@ const StyledEmptyState = styled.p`
     color: ${theme.colorTextSecondary};
   `}
 `;
+
+function AssistantBody({ message }: { message: TutorialMessage }) {
+  if (message.status === 'error') {
+    return (
+      <StyledError role="alert">
+        {message.content ||
+          t('The tutorial assistant is currently unavailable.')}
+      </StyledError>
+    );
+  }
+  return (
+    <>
+      {message.content && <MarkdownMessage content={message.content} />}
+      {message.status === 'streaming' && !message.content && (
+        <StyledStatus>
+          <Loading position="inline" />
+          {t('Thinking…')}
+        </StyledStatus>
+      )}
+      {message.status === 'stopped' && (
+        <StyledStatus>{t('Stopped')}</StyledStatus>
+      )}
+    </>
+  );
+}
 
 export function MessageList({ messages }: MessageListProps) {
   return (
@@ -79,7 +124,11 @@ export function MessageList({ messages }: MessageListProps) {
       ) : (
         messages.map(message => (
           <StyledMessage key={message.id} messageRole={message.role}>
-            {message.content}
+            {message.role === 'assistant' ? (
+              <AssistantBody message={message} />
+            ) : (
+              message.content
+            )}
           </StyledMessage>
         ))
       )}
