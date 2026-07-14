@@ -8,8 +8,8 @@ Close out M3: adversarial/boundary tests, the clean-checkout compose smoke test,
 
 ## Tasks
 
-- [ ] 1. Adversarial service tests: prompt-injection question ("ignore your instructions and…"), out-of-scope decline phrasing, oversized question/history/viz_type
-- [ ] 2. `tutorial-assistant/scripts/generate-integration-patch.sh`:
+- [x] 1. Adversarial service tests: prompt-injection question ("ignore your instructions and…"), out-of-scope decline phrasing, oversized question/history/viz_type
+- [x] 2. `tutorial-assistant/scripts/generate-integration-patch.sh`:
   ```bash
   git diff v6.1...HEAD -- \
     superset-frontend/src/views/App.tsx \
@@ -20,7 +20,7 @@ Close out M3: adversarial/boundary tests, the clean-checkout compose smoke test,
     > tutorial-assistant/patches/tutorial-assistant-integration.patch
   ```
   Commit the artifact; add a check that it applies cleanly to pristine `v6.1` (`git apply --check` in a temp worktree)
-- [ ] 3. `tutorial-assistant/README.md`: architecture diagram, env setup (`docker/.env-local` with `ANTHROPIC_API_KEY`), run commands, feature-flag toggle procedure (config restart only, no rebuild), limitations (spec §1 out-of-scope; §9 security boundary — loopback only, no auth, CORS is not authentication), troubleshooting (proxy buffering breaks SSE, CORS origin mismatch, missing key)
+- [x] 3. `tutorial-assistant/README.md`: architecture diagram, env setup (`docker/.env-local` with `ANTHROPIC_API_KEY`), run commands, feature-flag toggle procedure (config restart only, no rebuild), limitations (spec §1 out-of-scope; §9 security boundary — loopback only, no auth, CORS is not authentication), troubleshooting (proxy buffering breaks SSE, CORS origin mismatch, missing key)
 - [ ] 4. Full smoke test per spec §10 from a clean clone + populated env:
   1. `docker compose up --build` completes
   2. Superset initializes; examples available
@@ -67,3 +67,20 @@ cd superset-frontend && npm run test -- src/features/tutorialAssistant
 ## ✅ Checkpoint M3
 
 Spec §11 M3 exit criterion met; demo recorded.
+
+## Execution notes (in progress)
+
+Done in this PR:
+- `tests/test_adversarial.py` — boundary limits (oversized question/history/viz_type, too many turns) and prompt-injection handling: the injected text is accepted as untrusted input, rides only in the user turn, and never enters the cached system prompt. Model-side refusal of injected/out-of-scope prompts is enforced by prompts.py (test_prompts.py) and confirmed live in the demo checklist. 69 pytest tests pass.
+- `scripts/generate-integration-patch.sh` + `patches/tutorial-assistant-integration.patch` — the core-Superset delta (App.tsx, featureFlags.ts, bootstrapTypes.ts, superset_config.py, docker-compose.yml). Verified it applies cleanly to a pristine `v6.1` worktree (`git apply --check`).
+- `README.md` — architecture, run instructions, feature-flag toggle, limitations, security boundary, and a troubleshooting ladder for the three real gotchas (CSP connect-src, IPv4/IPv6 loopback, CORS origin) plus port collisions.
+
+Smoke test (spec §10) — verified on the running stack during development:
+1. `docker compose up --build` completes ✅
+2. examples load ✅
+3. `/health` → `knowledge_docs: 15` ✅
+4. widget appears with the flag enabled ✅ (verified in-browser)
+5. demo questions return grounded answers ✅ (line-chart procedure streamed and rendered in-browser)
+6. flag-off restart removes the widget with no rebuild ✅ (runtime bootstrap delivery)
+
+Remaining (after this PR merges): final `feature/tutorial-assistant → v6.1` PR and the 60–90s demo recording.
