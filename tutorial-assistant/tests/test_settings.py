@@ -56,6 +56,17 @@ def test_defaults_applied(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.max_output_tokens == 700
 
 
+def test_api_key_is_not_exposed_in_repr(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-secret-value")
+    monkeypatch.setenv("MODEL", "claude-opus-4-8")
+    settings = load_settings()
+    assert "sk-ant-secret-value" not in repr(settings)
+    assert "sk-ant-secret-value" not in str(settings)
+    assert settings.anthropic_api_key.get_secret_value() == "sk-ant-secret-value"
+
+
 def test_allowed_origins_parses_comma_list(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

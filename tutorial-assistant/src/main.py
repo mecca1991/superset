@@ -25,7 +25,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .knowledge import load_knowledge
+from .knowledge import KnowledgeError, load_knowledge
 from .schemas import AskRequest, ErrorCode
 from .settings import load_settings, Settings
 
@@ -47,8 +47,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # Load and validate the knowledge pack exactly once at startup;
-        # any validation failure aborts the service.
-        app.state.knowledge = load_knowledge(app_settings.knowledge_dir)
+        # any validation failure aborts the service. The explicit error log
+        # keeps the reason visible in container logs.
+        try:
+            app.state.knowledge = load_knowledge(app_settings.knowledge_dir)
+        except KnowledgeError as exc:
+            logger.error("Failed to load knowledge pack: %s", exc)
+            raise
         logger.info(
             "knowledge pack loaded",
             extra={"knowledge_docs": len(app.state.knowledge)},
@@ -73,10 +78,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def validation_handler(
         request: Request, exc: RequestValidationError
     ) -> JSONResponse:
-        return error_response(
-            ErrorCode.VALIDATION,
-            "Request failed validation.",
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+        # Expose which fields failed and why, but never echo the submitted
+        # values (pydantic's raw errors() includes the offending input).
+        details = [
+            {
+                "field": ".".join(str(part) for part in error["loc"] if part != "body"),
+                "message": error["msg"],
+            }
+            for error in exc.errors()
+        ]
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "error": {
+                    "code": ErrorCode.VALIDATION.value,
+                    "message": "Request failed validation.",
+                    "details": details,
+                }
+            },
         )
 
     @app.get("/health")

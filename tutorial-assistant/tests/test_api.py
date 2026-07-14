@@ -55,6 +55,21 @@ def test_invalid_request_returns_validation_envelope(
     body = response.json()
     assert body["error"]["code"] == "VALIDATION"
     assert "message" in body["error"]
+    failed_fields = {detail["field"] for detail in body["error"]["details"]}
+    assert "question" in failed_fields
+    assert "context.route" in failed_fields
+
+
+def test_validation_details_do_not_echo_submitted_values(
+    client: TestClient,
+) -> None:
+    secret_value = "super-secret-question-content"
+    response = client.post(
+        "/ask",
+        json={"question": secret_value * 100, "context": {"route": "explore"}},
+    )
+    assert response.status_code == 422
+    assert secret_value not in response.text
 
 
 def test_oversized_question_returns_validation_envelope(

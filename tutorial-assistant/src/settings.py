@@ -22,7 +22,7 @@ configuration is missing (spec section 5.3).
 
 from pathlib import Path
 
-from pydantic import Field, ValidationError
+from pydantic import Field, SecretStr, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,7 +33,9 @@ class SettingsError(RuntimeError):
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(case_sensitive=False, extra="ignore")
 
-    anthropic_api_key: str = Field(min_length=1)
+    # SecretStr keeps the key out of reprs, logs, and error messages;
+    # consumers must call .get_secret_value() explicitly.
+    anthropic_api_key: SecretStr = Field(min_length=1)
     model: str = Field(min_length=1)
     knowledge_dir: Path = Path("/app/knowledge")
     allowed_origins: str = "http://localhost:8088"
