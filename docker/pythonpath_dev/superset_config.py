@@ -23,6 +23,7 @@
 import logging
 import os
 import sys
+from typing import Any
 
 from celery.schedules import crontab
 from flask_caching.backends.filesystemcache import FileSystemCache
@@ -105,7 +106,31 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True, "DATASET_FOLDERS": True}
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "DATASET_FOLDERS": True,
+    "IN_APP_TUTORIAL": True,
+}
+
+
+def tutorial_assistant_bootstrap(payload: dict[str, Any]) -> dict[str, Any]:
+    """Expose the tutorial assistant public URL to the frontend bootstrap payload.
+
+    The value lands under ``common.tutorial_assistant.api_url``. The Anthropic
+    API key is never part of this payload; it lives only in the assistant
+    container environment.
+    """
+    return {
+        "tutorial_assistant": {
+            "api_url": os.environ.get(
+                "TUTORIAL_ASSISTANT_PUBLIC_URL",
+                "http://localhost:8100",
+            ),
+        },
+    }
+
+
+COMMON_BOOTSTRAP_OVERRIDES_FUNC = tutorial_assistant_bootstrap
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
 # The base URL for the email report hyperlinks.
