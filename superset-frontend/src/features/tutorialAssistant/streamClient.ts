@@ -108,7 +108,15 @@ export async function askAssistant({
     if (!line) {
       return;
     }
-    const payload = JSON.parse(line.slice('data: '.length));
+    // Boundary buffering already guarantees whole events here; this guard
+    // defends only against a genuinely malformed data line, which is skipped
+    // rather than tearing down the stream.
+    let payload;
+    try {
+      payload = JSON.parse(line.slice('data: '.length));
+    } catch {
+      return;
+    }
     if (payload.type === 'delta') {
       onDelta(payload.text ?? '');
     } else if (payload.type === 'error') {
