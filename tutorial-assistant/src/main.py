@@ -91,8 +91,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.post("/ask")
     async def ask(request: Request, payload: AskRequest) -> JSONResponse:
-        # Streaming implementation arrives with the model integration;
-        # the validated stub keeps the API contract testable until then.
+        # Validated stub: requests pass full schema checks, but no model
+        # integration is wired to this endpoint.
         return error_response(
             ErrorCode.MODEL_UNAVAILABLE,
             UNAVAILABLE_MESSAGE,
