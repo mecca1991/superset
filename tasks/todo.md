@@ -20,6 +20,7 @@ Spec: `../Superset_In-App_Tutorial_Assistant_Technical_Specification.md` · Plan
 | 07 | [Compose integration: assistant sidecar, loopback binding](todo-07-compose-integration.md) | M3 | S | 03 | ⬜ not started |
 | 08 | [A11y completion, responsive panel, full state coverage](todo-08-a11y-states.md) | M3 | M | 06 | ⬜ not started |
 | 09 | [Hardening, smoke test, docs, patch artifact, demo](todo-09-hardening-demo.md) | M3 | M | all | ⬜ not started |
+| 10 | [Model evaluation and provider abstraction](todo-10-model-evaluation.md) | post-v1 | M | 01–09 | ⬜ deferred |
 
 ## Checkpoints
 
