@@ -29,7 +29,8 @@ Close out M3: adversarial/boundary tests, the clean-checkout compose smoke test,
   5. Three demo questions return grounded answers
   6. Disabling the flag + restart removes the widget (no rebuild)
 - [ ] 5. Final `git rebase v6.1`; run the entire test matrix (Jest scoped suite, full pytest, typecheck, `pre-commit run`)
-- [ ] 6. Record the 60–90s demo
+- [ ] 6. Open the single PR `v6.1 ← feature/tutorial-assistant` on the fork (`mecca1991/superset`) — deferred to here deliberately, because any `pull_request` event fires the fork's full inherited CI suite
+- [ ] 7. Record the 60–90s demo
 
 ## Demo checklist (60–90s)
 

@@ -1,7 +1,13 @@
 # Tutorial Assistant — Todo Index
 
 Spec: `../Superset_In-App_Tutorial_Assistant_Technical_Specification.md` · Plan: [plan.md](plan.md)
-Branch: `feature/tutorial-assistant` (off `v6.1`). Before starting each todo: `git fetch && git rebase v6.1`.
+
+## Branching & PR strategy
+
+- **Integration branch:** `feature/tutorial-assistant` (off `v6.1`), pushed to the `fork` remote (`mecca1991/superset`).
+- **Per todo:** branch `todo/NN-<slug>` off `feature/tutorial-assistant`, do the work, merge back into `feature/tutorial-assistant` **locally**, then `git push fork feature/tutorial-assistant`.
+- **No PRs until the end.** The fork inherits apache/superset's workflows, and 31 of them fire on any `pull_request` event — but plain pushes to `feature/tutorial-assistant` trigger nothing (push workflows only cover `master` and `[0-9].[0-9]*` branches). The single PR `v6.1 ← feature/tutorial-assistant` is opened at Todo 09, after the final rebase and full test matrix.
+- Before starting each todo: `git fetch origin v6.1 && git rebase origin/v6.1 feature/tutorial-assistant` (while nothing is stacked on top).
 
 | # | Todo | Milestone | Size | Depends on | Status |
 |---|------|-----------|------|------------|--------|
