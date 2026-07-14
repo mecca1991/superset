@@ -95,12 +95,18 @@ def build_system_blocks(docs: list[KnowledgeDoc]) -> list[dict[str, Any]]:
 
 
 def system_fingerprint(blocks: list[dict[str, Any]]) -> str:
-    """Stable hash of the serialized system blocks.
+    """Return a canonical fingerprint of the system-prompt content.
 
-    Logged at startup and usable in tests to prove the prompt is
-    byte-identical across processes and requests.
+    This detects changes to the block sequence or content. It does not prove
+    that the SDK's serialized HTTP request is byte-identical or that the
+    provider produced a cache hit.
     """
-    serialized = json.dumps(blocks, sort_keys=True, ensure_ascii=False)
+    serialized = json.dumps(
+        blocks,
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 

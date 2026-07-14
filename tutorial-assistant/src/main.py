@@ -201,8 +201,9 @@ def create_app(
         except KnowledgeError as exc:
             logger.error("Failed to load knowledge pack: %s", exc)
             raise
-        # Built once so the system prompt is byte-identical across requests;
-        # the fingerprint proves prefix stability for prompt caching.
+        # Built once so the same block objects are reused for every request;
+        # the logged fingerprint detects content drift across restarts. Actual
+        # cache behaviour is verified via the usage fields in request logs.
         app.state.system_blocks = build_system_blocks(app.state.knowledge)
         app.state.model_semaphore = asyncio.Semaphore(MODEL_CONCURRENCY)
         app.state.anthropic = anthropic_client or anthropic.AsyncAnthropic(
