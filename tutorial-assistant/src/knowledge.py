@@ -23,10 +23,14 @@ prefix stable.
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import get_args
 
 import frontmatter
 
-VALID_ROUTES = {"dashboard", "explore", "sqllab", "list", "other"}
+from .schemas import Route
+
+# Derived from the API's Route literal so the two never drift apart.
+VALID_ROUTES = set(get_args(Route))
 MAX_BODY_WORDS = 300
 
 
