@@ -23,6 +23,8 @@ enforced by the system prompt in prompts.py and covered by test_prompts.py plus
 the live demo checklist in the smoke test.
 """
 
+import json
+
 from fastapi.testclient import TestClient
 
 BASE = {"context": {"route": "explore"}}
@@ -97,6 +99,4 @@ def test_injection_text_never_enters_the_system_prompt(
     # The untrusted question rides in the user turn, never the cached system
     # prompt (spec section 5.4).
     assert injection in call["messages"][-1]["content"]
-    import json
-
     assert injection not in json.dumps(call["system"])
