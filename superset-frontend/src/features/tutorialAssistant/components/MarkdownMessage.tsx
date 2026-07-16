@@ -22,6 +22,14 @@ import { styled } from '@apache-superset/core/theme';
 
 const StyledMarkdown = styled.div`
   ${({ theme }) => `
+    /* Collapse the leading/trailing margins of the first/last block so the
+       rendered answer sits flush inside the message bubble. */
+    & > *:first-child {
+      margin-top: 0;
+    }
+    & > *:last-child {
+      margin-bottom: 0;
+    }
     a {
       color: ${theme.colorLink};
     }
@@ -32,15 +40,39 @@ const StyledMarkdown = styled.div`
       border-radius: ${theme.borderRadiusSM}px;
     }
     p {
-      margin: 0 0 ${theme.sizeUnit}px;
+      margin: 0 0 ${theme.sizeUnit * 2}px;
     }
-    p:last-child {
-      margin-bottom: 0;
+    strong {
+      font-weight: ${theme.fontWeightStrong};
+      color: ${theme.colorText};
+    }
+    /* Headings render compactly to suit the narrow panel: a bold label rather
+       than a browser-scaled heading. */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      margin: ${theme.sizeUnit * 3}px 0 ${theme.sizeUnit}px;
+      font-size: ${theme.fontSizeLG}px;
+      font-weight: ${theme.fontWeightStrong};
+      line-height: ${theme.lineHeightHeading4};
+      color: ${theme.colorTextHeading};
     }
     ol,
     ul {
-      margin: 0;
+      margin: 0 0 ${theme.sizeUnit * 2}px;
       padding-left: ${theme.sizeUnit * 5}px;
+    }
+    /* Space list items so multi-step procedures are easy to scan. */
+    li + li {
+      margin-top: ${theme.sizeUnit}px;
+    }
+    /* Nested lists tuck tighter under their parent item. */
+    li > ol,
+    li > ul {
+      margin: ${theme.sizeUnit}px 0 0;
     }
   `}
 `;
@@ -54,7 +86,8 @@ interface MarkdownMessageProps {
  * and links/attributes sanitized via rehype-sanitize (spec section 4.1).
  * CommonMark covers the required subset: paragraphs, numbered lists,
  * bullets, emphasis, links, and inline code. External links open safely in
- * a new tab.
+ * a new tab. The system prompt instructs the model to emit documentation
+ * references as Markdown links so they render clickable here.
  */
 export function MarkdownMessage({ content }: MarkdownMessageProps) {
   return (
