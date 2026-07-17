@@ -56,7 +56,7 @@ export const Launcher = forwardRef<HTMLButtonElement, LauncherProps>(
     <StyledLauncher
       ref={ref}
       type="button"
-      aria-label={t('Open tutorial assistant')}
+      aria-label={t('Open Superset Assistant')}
       aria-expanded={expanded}
       aria-haspopup="dialog"
       onClick={onClick}

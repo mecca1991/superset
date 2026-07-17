@@ -1,0 +1,163 @@
+diff --git a/docker-compose.yml b/docker-compose.yml
+index bd474a83ef..c09e607d22 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -256,6 +256,30 @@ services:
+     healthcheck:
+       test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
+
++  tutorial-assistant:
++    build: ./tutorial-assistant
++    # Bound to loopback only: the v1 API has no authentication and is
++    # acceptable only for a local demo (spec section 9).
++    ports:
++      - "127.0.0.1:${TUTORIAL_ASSISTANT_PORT:-8100}:8100"
++    env_file:
++      - path: docker/.env # default
++        required: true
++      - path: docker/.env-local # optional override (ANTHROPIC_API_KEY here)
++        required: false
++    environment:
++      MODEL: ${MODEL:-claude-opus-4-8}
++      KNOWLEDGE_DIR: /app/knowledge
++      ALLOWED_ORIGINS: ${TUTORIAL_ASSISTANT_ALLOWED_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088,http://localhost:9000,http://127.0.0.1:9000}
++      REQUEST_TIMEOUT_SECONDS: ${TUTORIAL_ASSISTANT_REQUEST_TIMEOUT_SECONDS:-30}
++      MAX_OUTPUT_TOKENS: ${TUTORIAL_ASSISTANT_MAX_OUTPUT_TOKENS:-700}
++    # Mount source and knowledge for local iteration; the compiled venv in
++    # the image stays isolated from the host.
++    volumes:
++      - ./tutorial-assistant/src:/app/src:ro
++      - ./tutorial-assistant/knowledge:/app/knowledge:ro
++    restart: unless-stopped
++
+ volumes:
+   superset_home:
+     external: false
+diff --git a/docker/pythonpath_dev/superset_config.py b/docker/pythonpath_dev/superset_config.py
+index 108305cf90..f6f483b1e2 100644
+--- a/docker/pythonpath_dev/superset_config.py
++++ b/docker/pythonpath_dev/superset_config.py
+@@ -23,6 +23,7 @@
+ import logging
+ import os
+ import sys
++from typing import Any, cast
+
+ from celery.schedules import crontab
+ from flask_caching.backends.filesystemcache import FileSystemCache
+@@ -105,7 +106,66 @@ class CeleryConfig:
+
+ CELERY_CONFIG = CeleryConfig
+
+-FEATURE_FLAGS = {"ALERT_REPORTS": True, "DATASET_FOLDERS": True}
++FEATURE_FLAGS = {
++    "ALERT_REPORTS": True,
++    "DATASET_FOLDERS": True,
++    "IN_APP_TUTORIAL": True,
++}
++
++
++def tutorial_assistant_bootstrap(payload: dict[str, Any]) -> dict[str, Any]:
++    """Expose the tutorial assistant public URL to the frontend bootstrap payload.
++
++    The value lands under ``common.tutorial_assistant.api_url``. The Anthropic
++    API key is never part of this payload; it lives only in the assistant
++    container environment.
++    """
++    return {
++        "tutorial_assistant": {
++            # 127.0.0.1 (not localhost) so the browser uses IPv4 to reach the
++            # IPv4-only loopback-published assistant port; localhost may
++            # resolve to ::1 where the port is not bound.
++            "api_url": os.environ.get(
++                "TUTORIAL_ASSISTANT_PUBLIC_URL",
++                "http://127.0.0.1:8100",
++            ),
++        },
++    }
++
++
++COMMON_BOOTSTRAP_OVERRIDES_FUNC = tutorial_assistant_bootstrap
++
++# The tutorial assistant runs on a separate origin, so the browser's fetch
++# from the Superset page is subject to Superset's Content-Security-Policy.
++# Add the assistant origins to connect-src, otherwise the widget's request is
++# blocked before it is ever sent. Both loopback forms are allowed so the demo
++# works whether the page is served from localhost or 127.0.0.1.
++#
++# This must run at config-load time: Talisman reads TALISMAN_CONFIG in
++# configure_middlewares(), which runs before FLASK_APP_MUTATOR, so a later
++# hook would be too late. The whole block is guarded so that an import-order
++# change can never take down the app — at worst the assistant is unreachable.
++_TUTORIAL_ASSISTANT_CONNECT_SRC = [
++    "http://127.0.0.1:8100",
++    "http://localhost:8100",
++]
++try:
++    from superset.config import (  # noqa: E402
++        TALISMAN_CONFIG,
++        TALISMAN_DEV_CONFIG,
++    )
++
++    for _talisman_config in (TALISMAN_CONFIG, TALISMAN_DEV_CONFIG):
++        _csp = _talisman_config["content_security_policy"]
++        cast("list[str]", _csp["connect-src"]).extend(  # type: ignore[index]
++            _TUTORIAL_ASSISTANT_CONNECT_SRC
++        )
++except Exception:  # noqa: BLE001
++    logger.warning(
++        "Could not extend Content-Security-Policy connect-src for the tutorial "
++        "assistant; the in-app assistant may be blocked by the browser."
++    )
++
+ ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
+ WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
+ # The base URL for the email report hyperlinks.
+diff --git a/superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts b/superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts
+index 7a5ba44dce..79d4047d09 100644
+--- a/superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts
++++ b/superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts
+@@ -56,6 +56,7 @@ export enum FeatureFlag {
+   FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
+   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
+   GlobalTaskFramework = 'GLOBAL_TASK_FRAMEWORK',
++  InAppTutorial = 'IN_APP_TUTORIAL',
+   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
+   Matrixify = 'MATRIXIFY',
+   ScheduledQueries = 'SCHEDULED_QUERIES',
+diff --git a/superset-frontend/src/types/bootstrapTypes.ts b/superset-frontend/src/types/bootstrapTypes.ts
+index daf8f46bac..eca42e87d9 100644
+--- a/superset-frontend/src/types/bootstrapTypes.ts
++++ b/superset-frontend/src/types/bootstrapTypes.ts
+@@ -169,6 +169,9 @@ export interface CommonBootstrapData {
+   d3_format: Partial<FormatLocaleDefinition>;
+   d3_time_format: Partial<TimeLocaleDefinition>;
+   pdf_compression_level: 'NONE' | 'FAST' | 'MEDIUM' | 'SLOW';
++  tutorial_assistant?: {
++    api_url: string;
++  };
+ }
+
+ export interface BootstrapData {
+diff --git a/superset-frontend/src/views/App.tsx b/superset-frontend/src/views/App.tsx
+index 270a344d81..f4321c4bc5 100644
+--- a/superset-frontend/src/views/App.tsx
++++ b/superset-frontend/src/views/App.tsx
+@@ -39,6 +39,7 @@ import setupCodeOverrides from 'src/setup/setupCodeOverrides';
+ import { logEvent } from 'src/logger/actions';
+ import { store } from 'src/views/store';
+ import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
++import TutorialAssistant from 'src/features/tutorialAssistant';
+ import { RootContextProviders } from './RootContextProviders';
+ import { ScrollToTop } from './ScrollToTop';
+
+@@ -106,6 +107,9 @@ const App = () => (
+         </Switch>
+       </ExtensionsStartup>
+       <ToastContainer />
++      <ErrorBoundary showMessage={false}>
++        <TutorialAssistant />
++      </ErrorBoundary>
+     </RootContextProviders>
+   </Router>
+ );

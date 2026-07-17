@@ -92,7 +92,7 @@ export async function askAssistant({
   if (!response.ok || !response.body) {
     // Pre-stream failures use the JSON error envelope.
     let code = DEFAULT_ERROR;
-    let message = 'The tutorial assistant is currently unavailable.';
+    let message = 'The Superset Assistant is currently unavailable.';
     try {
       const envelope = await response.json();
       code = parseErrorCode(envelope?.error?.code);
@@ -132,7 +132,7 @@ export async function askAssistant({
     } else if (payload.type === 'error') {
       throw new TutorialAssistantError(
         parseErrorCode(payload.code),
-        payload.message ?? 'The tutorial assistant is currently unavailable.',
+        payload.message ?? 'The Superset Assistant is currently unavailable.',
       );
     }
     // 'done' needs no action; the reader loop ends when the stream closes.

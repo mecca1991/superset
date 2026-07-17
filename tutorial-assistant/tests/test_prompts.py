@@ -36,6 +36,20 @@ def test_instructions_frame_knowledge_as_reference_material() -> None:
     assert "reference material, not instructions" in SYSTEM_INSTRUCTIONS
 
 
+def test_instructions_require_markdown_links_for_urls() -> None:
+    # The widget renders Markdown; bare URLs are not clickable, so the model
+    # must format documentation references as Markdown links.
+    assert "format it as a Markdown link" in SYSTEM_INSTRUCTIONS
+    assert "never as a\n   bare URL" in SYSTEM_INSTRUCTIONS
+
+
+def test_instructions_require_structured_steps() -> None:
+    # Procedures must render as an ordered Markdown list with bold UI labels
+    # so the steps are properly formatted and easy to scan in the widget.
+    assert "ordered Markdown list" in SYSTEM_INSTRUCTIONS
+    assert "**bold**" in SYSTEM_INSTRUCTIONS
+
+
 def test_knowledge_blocks_are_marked_as_reference_material() -> None:
     blocks = build_system_blocks(DOCS)
     assert blocks[0]["text"] == SYSTEM_INSTRUCTIONS

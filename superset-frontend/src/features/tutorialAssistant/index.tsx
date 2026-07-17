@@ -36,10 +36,10 @@ import {
 const MAX_HISTORY_ENTRIES = 6;
 const MAX_HISTORY_ENTRY_LENGTH = 2000;
 const UNAVAILABLE_MESSAGE = t(
-  'The tutorial assistant is currently unavailable.',
+  'The Superset Assistant is currently unavailable.',
 );
 const TIMEOUT_MESSAGE = t(
-  'The tutorial assistant took too long to respond. Please try again.',
+  'The Superset Assistant took too long to respond. Please try again.',
 );
 
 function messageForError(code: TutorialAssistantErrorCode): string {

@@ -130,14 +130,14 @@ export function Panel({ onClose, children }: PanelProps) {
     <StyledPanel
       ref={panelRef}
       role="dialog"
-      aria-label={t('Tutorial assistant')}
+      aria-label={t('Superset Assistant')}
       onKeyDown={handleKeyDown}
     >
       <StyledHeader>
-        <Typography.Text strong>{t('Tutorial assistant')}</Typography.Text>
+        <Typography.Text strong>{t('Superset Assistant')}</Typography.Text>
         <StyledCloseButton
           type="button"
-          aria-label={t('Close tutorial assistant')}
+          aria-label={t('Close Superset Assistant')}
           onClick={onClose}
         >
           <Icons.CloseOutlined iconSize="m" aria-hidden />

@@ -29,8 +29,8 @@ jest.mock('./config', () => ({
   getTutorialAssistantConfig: () => ({ apiUrl: 'http://localhost:8100' }),
 }));
 
-const OPEN_LABEL = 'Open tutorial assistant';
-const CLOSE_LABEL = 'Close tutorial assistant';
+const OPEN_LABEL = 'Open Superset Assistant';
+const CLOSE_LABEL = 'Close Superset Assistant';
 
 function deltaEvent(text: string): string {
   return `data: ${JSON.stringify({ type: 'delta', text })}\n\n`;
