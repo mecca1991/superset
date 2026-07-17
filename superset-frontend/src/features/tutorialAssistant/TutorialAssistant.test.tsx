@@ -201,7 +201,9 @@ test('excludes a stopped exchange from the next request history', async () => {
   userEvent.click(stop);
 
   // Second question completes normally.
-  fetchSpy.mockResolvedValueOnce(sseResponse([deltaEvent('answer'), DONE_EVENT]));
+  fetchSpy.mockResolvedValueOnce(
+    sseResponse([deltaEvent('answer'), DONE_EVENT]),
+  );
   openAndAsk('second question');
 
   await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
@@ -232,7 +234,9 @@ test('offers clickable example questions in the empty state and asks them', asyn
   userEvent.click(example);
 
   await waitFor(() => expect(fetchSpy).toHaveBeenCalled());
-  const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+  const body = JSON.parse(
+    (fetchSpy.mock.calls[0][1] as RequestInit).body as string,
+  );
   expect(body.question).toBe('How do I create a dashboard?');
 });
 
@@ -240,7 +244,11 @@ test('announces the completed answer once via a polite live region', async () =>
   jest
     .spyOn(window, 'fetch')
     .mockResolvedValue(
-      sseResponse([deltaEvent('A dimension '), deltaEvent('groups data.'), DONE_EVENT]),
+      sseResponse([
+        deltaEvent('A dimension '),
+        deltaEvent('groups data.'),
+        DONE_EVENT,
+      ]),
     );
   renderWidget();
   openAndAsk('What is a dimension?');
@@ -253,11 +261,13 @@ test('announces the completed answer once via a polite live region', async () =>
 });
 
 test('shows a timeout-specific message on TIMEOUT', async () => {
-  jest.spyOn(window, 'fetch').mockResolvedValue(
-    sseResponse([
-      `data: ${JSON.stringify({ type: 'error', code: 'TIMEOUT', message: 'x' })}\n\n`,
-    ]),
-  );
+  jest
+    .spyOn(window, 'fetch')
+    .mockResolvedValue(
+      sseResponse([
+        `data: ${JSON.stringify({ type: 'error', code: 'TIMEOUT', message: 'x' })}\n\n`,
+      ]),
+    );
   renderWidget();
   openAndAsk('slow question');
 

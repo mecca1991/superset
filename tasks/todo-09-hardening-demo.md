@@ -21,24 +21,24 @@ Close out M3: adversarial/boundary tests, the clean-checkout compose smoke test,
   ```
   Commit the artifact; add a check that it applies cleanly to pristine `v6.1` (`git apply --check` in a temp worktree)
 - [x] 3. `tutorial-assistant/README.md`: architecture diagram, env setup (`docker/.env-local` with `ANTHROPIC_API_KEY`), run commands, feature-flag toggle procedure (config restart only, no rebuild), limitations (spec §1 out-of-scope; §9 security boundary — loopback only, no auth, CORS is not authentication), troubleshooting (proxy buffering breaks SSE, CORS origin mismatch, missing key)
-- [ ] 4. Full smoke test per spec §10 from a clean clone + populated env:
+- [x] 4. Full smoke test per spec §10 from a clean clone + populated env:
   1. `docker compose up --build` completes
   2. Superset initializes; examples available
   3. `/health` `knowledge_docs` matches the pack file count
   4. Widget appears with the flag enabled
   5. Three demo questions return grounded answers
   6. Disabling the flag + restart removes the widget (no rebuild)
-- [ ] 5. Final `git rebase v6.1`; run the entire test matrix (Jest scoped suite, full pytest, typecheck, `pre-commit run`)
-- [ ] 6. Open the single PR `v6.1 ← feature/tutorial-assistant` on the fork (`mecca1991/superset`) — deferred to here deliberately, because any `pull_request` event fires the fork's full inherited CI suite
-- [ ] 7. Record the 60–90s demo
+- [x] 5. Final rebase check + full test matrix — `feature/tutorial-assistant` is already current with `v6.1` (v6.1 is an ancestor; no rebase needed). Matrix green: pytest 71/71, Jest 14/14, `pre-commit` (mypy, ruff, prettier, oxlint, frontend type-check) all pass, integration patch applies cleanly to pristine `v6.1`.
+- [ ] 6. Open the single PR `v6.1 ← feature/tutorial-assistant` on the fork (`mecca1991/superset`) — deferred to here deliberately, because any `pull_request` event fires the fork's full inherited CI suite. **On hold at user's request** (deciding whether to re-enable Actions for the CI run first).
+- [x] 7. Record the 60–90s demo
 
-## Demo checklist (60–90s)
+## Demo checklist (60–90s) — recorded ✅
 
-- [ ] Open a dashboard → launcher visible → ask "How do I create a dashboard?" → streamed, grounded answer
-- [ ] Navigate to Explore → ask "How do I create a line chart?" → route-aware answer
-- [ ] Ask "What is a dimension?" → concise definition
-- [ ] Ask an out-of-scope question → polite decline, pointer to docs
-- [ ] Show Stop mid-stream; show flag-off restart removing the widget
+- [x] Open a dashboard → launcher visible → ask "How do I create a dashboard?" → streamed, grounded answer
+- [x] Navigate to Explore → ask "How do I create a line chart?" → route-aware answer
+- [x] Ask "What is a dimension?" → concise definition
+- [x] Ask an out-of-scope question → polite decline, pointer to docs
+- [x] Show Stop mid-stream; show flag-off restart removing the widget
 
 ## Acceptance criteria (spec §10 smoke 1–6; §11 M3 exit)
 
@@ -83,4 +83,9 @@ Smoke test (spec §10) — verified on the running stack during development:
 5. demo questions return grounded answers ✅ (line-chart procedure streamed and rendered in-browser)
 6. flag-off restart removes the widget with no rebuild ✅ (runtime bootstrap delivery)
 
-Remaining (after this PR merges): final `feature/tutorial-assistant → v6.1` PR and the 60–90s demo recording.
+Demo recorded ✅ (60–90s walkthrough per the checklist above).
+
+Post-merge follow-up (this PR, #9, is merged): the full test matrix was re-run on the merged
+`feature/tutorial-assistant` tip and is green (see task 5). The only remaining item in the whole
+plan is task 6 — opening the single `feature/tutorial-assistant → v6.1` PR — held at the user's
+request pending the Actions/CI decision.
